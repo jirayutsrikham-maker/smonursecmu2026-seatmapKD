@@ -97,59 +97,44 @@
     </div>
 
     <script type="module">
+        // 1. นำเข้า Firebase ผ่านลิงก์ CDN ที่รองรับการใช้งานบน Browser โดยตรง (ลบตัวที่ซ้ำกันออกแล้ว)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global environment variables check
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'parade-app-default';
-        // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+        // 2. ตั้งค่าคอนฟิก Firebase ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGaEjURXti8qsyDzaXw3zusb8uVmtwHps",
+            authDomain: "smonursecmu2026-seatmapkd.firebaseapp.com",
+            projectId: "smonursecmu2026-seatmapkd",
+            storageBucket: "smonursecmu2026-seatmapkd.firebasestorage.app",
+            messagingSenderId: "393369058256",
+            appId: "1:393369058256:web:0b3bbfa28be799c27a17d5",
+            measurementId: "G-SZPH7YJYEP"
+        };
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBGaEjURXti8qsyDzaXw3zusb8uVmtwHps",
-  authDomain: "smonursecmu2026-seatmapkd.firebaseapp.com",
-  projectId: "smonursecmu2026-seatmapkd",
-  storageBucket: "smonursecmu2026-seatmapkd.firebasestorage.app",
-  messagingSenderId: "393369058256",
-  appId: "1:393369058256:web:0b3bbfa28be799c27a17d5",
-  measurementId: "G-SZPH7YJYEP"
-};
+        const appId = 'parade-app-2026';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Generate Grid UI
+        // 3. สร้างหน้าตาของตาราง (Grid UI)
         const gridContainer = document.getElementById('grid-container');
         const totalRows = 52;
         
-        // Helper to determine row color based on specifications
         function getRowTheme(rowIndex) {
             if (rowIndex <= 18) return 'grid-row-blue text-blue-900 border-blue-200';
             if (rowIndex <= 35) return 'grid-row-brown text-amber-900 border-amber-200';
             return 'grid-row-yellow text-yellow-900 border-yellow-300';
         }
 
-        // Generate 52 Rows
         for (let i = 1; i <= totalRows; i++) {
             const themeClass = getRowTheme(i);
             const rowHtml = `
                 <div class="grid grid-cols-12 gap-2 items-center py-2 px-4 rounded-md border border-opacity-50 ${themeClass}">
                     <div class="col-span-2 font-medium">แถวที่ ${i}</div>
                     
-                    <!-- Left flank (purple icon in design) -->
                     <div class="col-span-1">
                         <input type="text" id="r${i}_left" class="input-cell db-sync" placeholder="-" title="ตำแหน่งซ้ายสุด แถว ${i}">
                     </div>
 
-                    <!-- Main 4 Center Columns -->
                     <div class="col-span-2">
                         <input type="text" id="r${i}_c1" class="input-cell db-sync font-bold" placeholder="เลข">
                     </div>
@@ -163,7 +148,6 @@ const analytics = getAnalytics(app);
                         <input type="text" id="r${i}_c4" class="input-cell db-sync font-bold" placeholder="เลข">
                     </div>
 
-                    <!-- Right flank (Special Roles) -->
                     <div class="col-span-1 flex justify-end">
                         <input type="text" id="r${i}_right" class="input-cell input-special db-sync text-sm" placeholder="พิเศษ">
                     </div>
@@ -172,109 +156,97 @@ const analytics = getAnalytics(app);
             gridContainer.insertAdjacentHTML('beforeend', rowHtml);
         }
 
-        if (!firebaseConfig) {
-            document.getElementById('connection-status').innerHTML = '⚠️ ขาดการตั้งค่า Firebase (Demo Mode)';
-            document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
-        } else {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            // แก้ไข Path ให้มีจำนวน segments เป็นเลขคู่ (collection/document/collection/document)
-            // เปลี่ยนจาก 'public', 'data', 'parade_formation' (5 segments รวม appId) 
-            // เป็น 'public_data', 'parade_formation' (4 segments รวม appId)
-            const docRef = doc(db, 'artifacts', appId, 'public_data', 'parade_formation');
+        // 4. เริ่มต้นระบบ Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        // กำหนดตำแหน่งเก็บข้อมูลใน Database
+        const docRef = doc(db, 'artifacts', appId, 'public_data', 'parade_formation');
 
-            // Handle Input Debouncing
-            let updateTimeout = null;
-            let pendingUpdates = {};
+        // 5. ระบบส่งข้อมูลขึ้น Firebase แบบประหยัดโควต้า (Debounce)
+        let updateTimeout = null;
+        let pendingUpdates = {};
 
-            const syncToFirebase = async () => {
-                if (Object.keys(pendingUpdates).length === 0) return;
-                
-                const updatesToPush = { ...pendingUpdates };
-                pendingUpdates = {}; // reset for next batch
-                
+        const syncToFirebase = async () => {
+            if (Object.keys(pendingUpdates).length === 0) return;
+            
+            const updatesToPush = { ...pendingUpdates };
+            pendingUpdates = {}; 
+            
+            try {
+                await updateDoc(docRef, updatesToPush);
+            } catch (error) {
+                console.error("กำลังสร้างเอกสารใหม่...", error);
                 try {
-                    await updateDoc(docRef, updatesToPush);
-                } catch (error) {
-                    console.error("Error updating document, trying to create it...", error);
-                    try {
-                        // If document doesn't exist, set it first
-                        await setDoc(docRef, updatesToPush, { merge: true });
-                    } catch (e) {
-                        console.error("Failed to write to Firebase:", e);
-                    }
+                    await setDoc(docRef, updatesToPush, { merge: true });
+                } catch (e) {
+                    console.error("บันทึกข้อมูลไม่สำเร็จ:", e);
                 }
-            };
+            }
+        };
 
-            const handleInput = (e) => {
-                const elementId = e.target.id;
-                const value = e.target.value;
-                
-                // Store pending update
-                pendingUpdates[elementId] = value;
-                
-                // Debounce
-                if (updateTimeout) clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(syncToFirebase, 600); // 600ms delay to prevent too many writes
-            };
+        const handleInput = (e) => {
+            const elementId = e.target.id;
+            const value = e.target.value;
+            
+            pendingUpdates[elementId] = value;
+            
+            if (updateTimeout) clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(syncToFirebase, 600); 
+        };
 
-            // Attach listeners to all inputs
-            document.querySelectorAll('.db-sync').forEach(input => {
-                input.addEventListener('input', handleInput);
-            });
+        document.querySelectorAll('.db-sync').forEach(input => {
+            input.addEventListener('input', handleInput);
+        });
 
-            // Authentication & Subscription
-            const startSync = async () => {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+        // 6. ฟังก์ชันเริ่มการซิงค์ข้อมูล (ล็อกอินแบบไม่ต้องใช้รหัสผ่าน และดึงข้อมูล)
+        const startSync = async () => {
+            try {
+                // ยืนยันตัวตนแบบ Anonymous (ใครมีลิงก์ก็เข้าได้)
+                await signInAnonymously(auth);
 
-                    // Create doc if it doesn't exist initially to prevent read errors
-                    const docSnap = await getDoc(docRef);
-                    if (!docSnap.exists()) {
-                        await setDoc(docRef, {});
-                    }
+                // เช็คว่ามีเอกสารนี้ในฐานข้อมูลหรือยัง ถ้ายังให้สร้างเตรียมไว้
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    await setDoc(docRef, {});
+                }
 
-                    document.getElementById('connection-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>ออนไลน์ (Real-time)';
-                    document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200 shadow-sm';
+                // แสดงผลว่าเชื่อมต่อสำเร็จ
+                document.getElementById('connection-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>ออนไลน์ (Real-time)';
+                document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200 shadow-sm';
 
-                    // Listen for real-time updates
-                    onSnapshot(docRef, (doc) => {
-                        if (doc.exists()) {
-                            const data = doc.data();
-                            
-                            // Update all fields EXCEPT the one currently being typed in to prevent cursor jumping
-                            const activeElementId = document.activeElement ? document.activeElement.id : null;
-                            
-                            Object.keys(data).forEach(key => {
-                                const inputEl = document.getElementById(key);
-                                if (inputEl && key !== activeElementId) {
-                                    // Only update if value is different to avoid unnecessary DOM paints
-                                    if (inputEl.value !== data[key]) {
-                                        inputEl.value = data[key] || '';
-                                    }
+                // รอรับข้อมูลเรียลไทม์เมื่อมีการเปลี่ยนแปลงจากคนอื่น
+                onSnapshot(docRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        
+                        // เช็คช่องที่ผู้ใช้กำลังพิมพ์อยู่ เพื่อไม่ให้ข้อมูลใหม่มาทับขณะกำลังพิมพ์
+                        const activeElementId = document.activeElement ? document.activeElement.id : null;
+                        
+                        Object.keys(data).forEach(key => {
+                            const inputEl = document.getElementById(key);
+                            if (inputEl && key !== activeElementId) {
+                                if (inputEl.value !== data[key]) {
+                                    inputEl.value = data[key] || '';
                                 }
-                            });
-                        }
-                    }, (error) => {
-                        console.error("Firebase listen error:", error);
-                        document.getElementById('connection-status').innerHTML = '⚠️ ขาดการเชื่อมต่อ';
-                        document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
-                    });
-
-                } catch (error) {
-                    console.error("Auth error:", error);
-                    document.getElementById('connection-status').innerHTML = '⚠️ เกิดข้อผิดพลาดในการยืนยันตัวตน';
+                            }
+                        });
+                    }
+                }, (error) => {
+                    console.error("Firebase listen error:", error);
+                    document.getElementById('connection-status').innerHTML = '⚠️ ขาดการเชื่อมต่อ (เช็คตั้งค่า Rules ใน Firebase)';
                     document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
-                }
-            };
+                });
 
-            startSync();
-        }
+            } catch (error) {
+                console.error("Auth error:", error);
+                document.getElementById('connection-status').innerHTML = '⚠️ ล้มเหลว (ต้องเปิดใช้งาน Anonymous ใหมวด Authentication ใน Firebase ก่อน)';
+                document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
+            }
+        };
+
+        // เริ่มทำงานเมื่อเปิดเว็บ
+        startSync();
     </script>
 </body>
 </html>
