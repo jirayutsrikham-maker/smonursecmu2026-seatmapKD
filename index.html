@@ -79,7 +79,6 @@
             <div id="grid-container" class="space-y-2"></div>
         </div>
 
-        <!-- Bottom Roles -->
         <div class="flex flex-wrap justify-center gap-6 mt-12 pt-8 border-t border-slate-200 min-w-[800px]">
             <div class="w-40 text-center bg-orange-100 p-3 rounded-lg border border-orange-200">
                 <label class="block text-xs font-semibold text-orange-600 mb-1">ประสานงาน ปี 4</label>
@@ -97,25 +96,12 @@
     </div>
 
     <script type="module">
-        // 1. นำเข้า Firebase ผ่านลิงก์ CDN ที่รองรับการใช้งานบน Browser โดยตรง (ลบตัวที่ซ้ำกันออกแล้ว)
+        // 1. นำเข้า Firebase ผ่านลิงก์ CDN เท่านั้น (ไม่มีการใช้คำสั่ง import ... from "firebase/app" แล้ว)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 2. ตั้งค่าคอนฟิก Firebase ของคุณ
-        const firebaseConfig = {
-            apiKey: "AIzaSyBGaEjURXti8qsyDzaXw3zusb8uVmtwHps",
-            authDomain: "smonursecmu2026-seatmapkd.firebaseapp.com",
-            projectId: "smonursecmu2026-seatmapkd",
-            storageBucket: "smonursecmu2026-seatmapkd.firebasestorage.app",
-            messagingSenderId: "393369058256",
-            appId: "1:393369058256:web:0b3bbfa28be799c27a17d5",
-            measurementId: "G-SZPH7YJYEP"
-        };
-
-        const appId = 'parade-app-2026';
-
-        // 3. สร้างหน้าตาของตาราง (Grid UI)
+        // 2. สร้างแถวให้เสร็จก่อนเป็นอันดับแรก เพื่อให้หน้าเว็บขึ้นมาสมบูรณ์เสมอ
         const gridContainer = document.getElementById('grid-container');
         const totalRows = 52;
         
@@ -156,14 +142,26 @@
             gridContainer.insertAdjacentHTML('beforeend', rowHtml);
         }
 
-        // 4. เริ่มต้นระบบ Firebase
+        // 3. ข้อมูล Config จาก Firebase ของคุณ (รวมมาไว้ที่นี่ที่เดียว)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGaEjURXti8qsyDzaXw3zusb8uVmtwHps",
+            authDomain: "smonursecmu2026-seatmapkd.firebaseapp.com",
+            projectId: "smonursecmu2026-seatmapkd",
+            storageBucket: "smonursecmu2026-seatmapkd.firebasestorage.app",
+            messagingSenderId: "393369058256",
+            appId: "1:393369058256:web:0b3bbfa28be799c27a17d5",
+            measurementId: "G-SZPH7YJYEP"
+        };
+
+        const currentAppId = 'parade-app-2026';
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // กำหนดตำแหน่งเก็บข้อมูลใน Database
-        const docRef = doc(db, 'artifacts', appId, 'public_data', 'parade_formation');
+        
+        // Path ที่ใช้เก็บข้อมูล: สังเกตว่ามี 4 ส่วน (คู่) จะไม่ขึ้น Error แบบเก่าแล้ว
+        const docRef = doc(db, 'artifacts', currentAppId, 'public_data', 'parade_formation');
 
-        // 5. ระบบส่งข้อมูลขึ้น Firebase แบบประหยัดโควต้า (Debounce)
         let updateTimeout = null;
         let pendingUpdates = {};
 
@@ -176,7 +174,7 @@
             try {
                 await updateDoc(docRef, updatesToPush);
             } catch (error) {
-                console.error("กำลังสร้างเอกสารใหม่...", error);
+                console.log("พยายามสร้างเอกสารใหม่...");
                 try {
                     await setDoc(docRef, updatesToPush, { merge: true });
                 } catch (e) {
@@ -199,28 +197,22 @@
             input.addEventListener('input', handleInput);
         });
 
-        // 6. ฟังก์ชันเริ่มการซิงค์ข้อมูล (ล็อกอินแบบไม่ต้องใช้รหัสผ่าน และดึงข้อมูล)
         const startSync = async () => {
             try {
-                // ยืนยันตัวตนแบบ Anonymous (ใครมีลิงก์ก็เข้าได้)
+                // ยืนยันตัวตนแบบ Anonymous (เพื่อให้ทุกคนแก้ไขข้อมูลได้โดยไม่ต้องใส่รหัสผ่าน)
                 await signInAnonymously(auth);
 
-                // เช็คว่ามีเอกสารนี้ในฐานข้อมูลหรือยัง ถ้ายังให้สร้างเตรียมไว้
                 const docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     await setDoc(docRef, {});
                 }
 
-                // แสดงผลว่าเชื่อมต่อสำเร็จ
                 document.getElementById('connection-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>ออนไลน์ (Real-time)';
                 document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200 shadow-sm';
 
-                // รอรับข้อมูลเรียลไทม์เมื่อมีการเปลี่ยนแปลงจากคนอื่น
                 onSnapshot(docRef, (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
-                        
-                        // เช็คช่องที่ผู้ใช้กำลังพิมพ์อยู่ เพื่อไม่ให้ข้อมูลใหม่มาทับขณะกำลังพิมพ์
                         const activeElementId = document.activeElement ? document.activeElement.id : null;
                         
                         Object.keys(data).forEach(key => {
@@ -234,18 +226,17 @@
                     }
                 }, (error) => {
                     console.error("Firebase listen error:", error);
-                    document.getElementById('connection-status').innerHTML = '⚠️ ขาดการเชื่อมต่อ (เช็คตั้งค่า Rules ใน Firebase)';
+                    document.getElementById('connection-status').innerHTML = '⚠️ ขาดการเชื่อมต่อ';
                     document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
                 });
 
             } catch (error) {
                 console.error("Auth error:", error);
-                document.getElementById('connection-status').innerHTML = '⚠️ ล้มเหลว (ต้องเปิดใช้งาน Anonymous ใหมวด Authentication ใน Firebase ก่อน)';
+                document.getElementById('connection-status').innerHTML = '⚠️ การเชื่อมต่อล้มเหลว';
                 document.getElementById('connection-status').className = 'mt-2 inline-flex items-center text-sm text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-200';
             }
         };
 
-        // เริ่มทำงานเมื่อเปิดเว็บ
         startSync();
     </script>
 </body>
