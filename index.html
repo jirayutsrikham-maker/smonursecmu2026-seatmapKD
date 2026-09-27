@@ -103,7 +103,27 @@
 
         // Global environment variables check
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'parade-app-default';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBGaEjURXti8qsyDzaXw3zusb8uVmtwHps",
+  authDomain: "smonursecmu2026-seatmapkd.firebaseapp.com",
+  projectId: "smonursecmu2026-seatmapkd",
+  storageBucket: "smonursecmu2026-seatmapkd.firebasestorage.app",
+  messagingSenderId: "393369058256",
+  appId: "1:393369058256:web:0b3bbfa28be799c27a17d5",
+  measurementId: "G-SZPH7YJYEP"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Generate Grid UI
